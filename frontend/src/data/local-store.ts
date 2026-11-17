@@ -3,6 +3,7 @@ import type { EntryRow } from './types'
 
 // 本地持久化：数据放在 localStorage 里，刷新、关掉再打开都还在。
 const STORAGE_KEY = 'scraper-strategy-studio:entries'
+const VALUE_PREFIX = 'scraper-strategy-studio:value:'
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
@@ -56,4 +57,27 @@ export function resetRows(key: string): EntryRow[] {
 
 export function storageKey(): string {
   return STORAGE_KEY
+}
+
+/** 读取条目清单之外的独立 JSON 集合（阈值配置、轮换池快照等），没有时返回 fallback。 */
+export function readValue<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return clone(fallback)
+  }
+  const raw = window.localStorage.getItem(VALUE_PREFIX + key)
+  if (!raw) {
+    return clone(fallback)
+  }
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return clone(fallback)
+  }
+}
+
+/** 写入独立 JSON 集合，与条目清单分键存放，互不覆盖。 */
+export function writeValue<T>(key: string, value: T): void {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    window.localStorage.setItem(VALUE_PREFIX + key, JSON.stringify(value))
+  }
 }
